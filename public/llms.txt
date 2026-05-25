@@ -1,0 +1,33 @@
+# EDITH
+
+> EDITH is a SaaS that audits AI-built Next.js apps before they ship — security, SEO, AI-surface, performance, accessibility, dependencies — and emits fix prompts formatted for Cursor, Claude Code, Windsurf, and v0.
+
+EDITH stands for "Every Deploy Inspected. Thoroughly. Honestly." It scans GitHub repos via a GitHub App, runs 100+ checks across 10 dimensions, and produces:
+
+- **EDITH Score** — overall posture (0-100)
+- **Debt Score** — technical-debt density
+- **Test Score** — test coverage + reliability of existing tests
+- **SEO Score** — per-page, with six sub-grades (Technical Foundation, Core Web Vitals, Content Structure, Indexability, Discoverability, AI Readiness)
+
+It also includes:
+
+- A browser extension that captures real-user Core Web Vitals plus DOM snapshots
+- A Google Search Console integration for real ranking data
+- An LLM citation tracker that asks Claude what it knows about your brand
+- Auto-PR for trivial SEO fixes (missing lang, missing robots.txt, missing metadata exports, missing llms.txt)
+- An MCP server so AI coding agents can query EDITH directly
+
+## Docs
+- [Getting started](https://edith.expert/docs)
+- [GitHub App install](https://edith.expert/dashboard)
+- [MCP integration](https://edith.expert/integrations/mcp)
+- [Browser extension](https://edith.expert/extension)
+- [Pricing](https://edith.expert/pricing)
+
+## Public report links
+EDITH scan reports are public at `https://edith.expert/r/<scan-id>` once a user opts in. They're meant to be shareable in PRs, Slack, and docs.
+
+## About
+- [What EDITH does](https://edith.expert)
+- [Changelog](https://edith.expert/changelog)
+- [Compliance / SOC2 status](https://edith.expert/compliance)

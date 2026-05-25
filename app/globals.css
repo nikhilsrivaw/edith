@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0A0E14;
+  --bg-elev: #0F141C;
+  --bg-elev-2: #141B26;
+  --border: #1E2A3A;
+  --border-hot: #2F3F55;
+  --text: #E6EDF5;
+  --text-dim: #7A8896;
+  --text-muted: #4A5568;
+  --accent: #FFB627;
+  --accent-2: #FF6B27;
+  --accent-soft: rgba(255, 182, 39, 0.12);
+  --accent-glow: rgba(255, 182, 39, 0.25);
+  --cool-1: #4A90C2;
+  --cool-2: #6BAED6;
+  --success: #4ADE80;
+  --danger: #F87171;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elev: var(--bg-elev);
+  --color-bg-elev-2: var(--bg-elev-2);
+  --color-border-edith: var(--border);
+  --color-border-hot: var(--border-hot);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-cool-1: var(--cool-1);
+  --color-cool-2: var(--cool-2);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-jetbrains-mono);
+  --animate-shimmer: shimmer 4s linear infinite;
+  --animate-aurora: aurora 10s ease-in-out infinite;
+  --animate-meteor: meteor linear infinite;
+  --animate-border-beam: border-beam 8s linear infinite;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv01";
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--border);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* === Keyframes === */
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes aurora {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes meteor {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(215deg) translateX(-560px);
+    opacity: 0;
+  }
+}
+
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+@keyframes scan-line {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 4s linear infinite;
+}
+.animate-aurora {
+  animation: aurora 10s ease-in-out infinite;
+}
+.animate-meteor {
+  animation: meteor linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

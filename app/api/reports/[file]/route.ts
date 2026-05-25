@@ -1,0 +1,164 @@
+/**
+ * GET /api/reports/<repo-name>.md  → markdown report
+ * GET /api/reports/<repo-name>.json → structured JSON
+ */
+import { NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { userOrgId } from "@/lib/db-aggregations";
+import { complianceFor } from "@/lib/compliance";
+
+export const runtime = "nodejs";
+
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ file: string }> },
+) {
+  const { file } = await ctx.params;
+  const m = file.match(/^(.+)\.(md|json)$/);
+  if (!m) return new NextResponse("bad path", { status: 400 });
+  const [, repoName, ext] = m;
+
+  const supabase = await getSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new NextResponse("unauthorised", { status: 401 });
+  const orgId = await userOrgId(user.id);
+  if (!orgId) return new NextResponse("no-org", { status: 404 });
+
+  const admin = getSupabaseAdmin();
+  const { data: repo } = await admin
+    .from("repositories")
+    .select("id, name, owner, default_branch")
+    .eq("org_id", orgId)
+    .eq("name", repoName)
+    .maybeSingle();
+  type RR = { id: string; name: string; owner: string; default_branch: string };
+  const r = repo as RR | null;
+  if (!r) return new NextResponse("repo not found", { status: 404 });
+
+  const { data: scan } = await admin
+    .from("scans")
+    .select("id, score_edith, score_test, score_debt, dimension_scores, commit, started_at, finished_at")
+    .eq("repo_id", r.id)
+    .eq("status", "completed")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  type S = {
+    id: string;
+    score_edith: number | null;
+    score_test: number | null;
+    score_debt: number | null;
+    dimension_scores: Record<string, number> | null;
+    commit: string;
+    started_at: string;
+    finished_at: string | null;
+  };
+  const s = scan as S | null;
+  if (!s) return new NextResponse("no scans yet", { status: 404 });
+
+  const { data: issues } = await admin
+    .from("issues")
+    .select("severity, dimension, check_id, title, description, file_path, line_number")
+    .eq("scan_id", s.id)
+    .is("resolved_at", null);
+  type I = {
+    severity: string;
+    dimension: string;
+    check_id: string;
+    title: string;
+    description: string | null;
+    file_path: string;
+    line_number: number | null;
+  };
+  const issueRows = (issues as I[]) ?? [];
+
+  const frameworks = await complianceFor(orgId);
+
+  if (ext === "json") {
+    return NextResponse.json({
+      repo: { name: r.name, owner: r.owner, branch: r.default_branch },
+      scan: {
+        id: s.id,
+        commit: s.commit,
+        scoreEdith: s.score_edith,
+        scoreTest: s.score_test,
+        scoreDebt: s.score_debt,
+        dimensions: s.dimension_scores,
+        startedAt: s.started_at,
+        finishedAt: s.finished_at,
+      },
+      issues: issueRows,
+      compliance: frameworks,
+    });
+  }
+
+  // Markdown
+  const lines: string[] = [];
+  lines.push(`# EDITH Audit Report — ${r.owner}/${r.name}`);
+  lines.push("");
+  lines.push(`Generated: ${new Date().toISOString()}  `);
+  lines.push(`Commit: \`${s.commit}\` on \`${r.default_branch}\``);
+  lines.push("");
+  lines.push("## Scores");
+  lines.push("");
+  lines.push(`| Score | Value |`);
+  lines.push(`|---|---|`);
+  lines.push(`| EDITH | **${s.score_edith ?? "?"}/100** |`);
+  lines.push(`| Test | ${s.score_test ?? "?"}/100 |`);
+  lines.push(`| Debt | ${s.score_debt ?? "?"}/100 |`);
+  if (s.dimension_scores) {
+    lines.push("");
+    lines.push("### Dimension breakdown");
+    lines.push("");
+    for (const [k, v] of Object.entries(s.dimension_scores)) {
+      lines.push(`- **${k}**: ${v}/100`);
+    }
+  }
+  lines.push("");
+  lines.push(`## Open findings (${issueRows.length})`);
+  lines.push("");
+  for (const sev of ["critical", "high", "medium", "low"]) {
+    const group = issueRows.filter((i) => i.severity === sev);
+    if (group.length === 0) continue;
+    lines.push(`### ${sev.toUpperCase()} (${group.length})`);
+    lines.push("");
+    for (const i of group) {
+      lines.push(
+        `- **${i.title}** — \`${i.file_path}${i.line_number ? `:${i.line_number}` : ""}\` (${i.check_id})`,
+      );
+      if (i.description) lines.push(`  ${i.description}`);
+    }
+    lines.push("");
+  }
+  lines.push("## Compliance readiness");
+  lines.push("");
+  for (const f of frameworks) {
+    lines.push(
+      `### ${f.name} — ${f.percent}% (${f.passing}/${f.totalControls} controls passing)`,
+    );
+    if (f.failingControls.length > 0) {
+      for (const c of f.failingControls) {
+        lines.push(
+          `- **${c.code}** ${c.title} — ${c.affectingIssues} issue(s) in ${c.affectingRepos.join(", ")}`,
+        );
+      }
+    } else {
+      lines.push("All evaluated controls pass.");
+    }
+    lines.push("");
+  }
+  lines.push("---");
+  lines.push("");
+  lines.push(`Generated by EDITH · https://edith.expert`);
+
+  return new NextResponse(lines.join("\n"), {
+    status: 200,
+    headers: {
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${r.name}-edith-report.md"`,
+    },
+  });
+}

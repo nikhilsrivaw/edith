@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "EDITH — Vibe Audit",
+  "short_name": "EDITH",
+  "version": "0.6.0",
+  "description": "Catch security & reliability bugs in AI-built apps. Scans the page you're on — including localhost — for leaked secrets, missing cookie flags, weak CSP, mixed content, cross-origin form posts, and more.",
+
+  "action": {
+    "default_title": "EDITH — click to scan this page",
+    "default_popup": "popup/index.html"
+  },
+
+  "background": {
+    "service_worker": "background/worker.js",
+    "type": "module"
+  },
+
+  "devtools_page": "devtools/devtools.html",
+
+  "permissions": ["storage", "activeTab", "scripting", "cookies", "webRequest"],
+
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "http://*:*/*",
+    "https://*/*"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/main.js", "content/seo-probe.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+
+  "minimum_chrome_version": "111"
+}

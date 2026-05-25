@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>EDITH</title>
+    <style>
+      :root {
+        --bg: #0a0e14;
+        --bg-elev: #0e131a;
+        --bg-elev-2: #131922;
+        --border: #1c232e;
+        --border-hot: #2a3340;
+        --text: #e6edf3;
+        --text-dim: #9ba9b4;
+        --text-muted: #5a6672;
+        --accent: #ffb627;
+        --accent-soft: rgba(255, 182, 39, 0.08);
+        --accent-glow: rgba(255, 182, 39, 0.35);
+        --danger: #f87171;
+        --warn: #ffb627;
+        --info: #6baed6;
+        --success: #4ade80;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 12px;
+        line-height: 1.5;
+        overflow: hidden;
+      }
+
+      /* ============ topbar ============ */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 36px;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .brand .bar {
+        width: 2px;
+        height: 14px;
+        background: var(--accent);
+      }
+      .brand strong {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+      }
+      .brand .sub {
+        font-family: var(--mono);
+        font-size: 9px;
+        color: var(--text-muted);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+      .topbar .grow {
+        flex: 1;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .pill.score {
+        color: var(--accent);
+        border-color: rgba(255, 182, 39, 0.4);
+      }
+      .pill.score.good {
+        color: var(--success);
+        border-color: rgba(74, 222, 128, 0.4);
+      }
+      .pill.score.bad {
+        color: var(--danger);
+        border-color: rgba(248, 113, 113, 0.4);
+      }
+      .topbar button {
+        background: transparent;
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .topbar button:hover {
+        border-color: var(--border-hot);
+        color: var(--text);
+      }
+      .topbar button.primary {
+        background: var(--accent);
+        color: var(--bg);
+        border-color: var(--accent);
+      }
+      .topbar button.primary:hover {
+        filter: brightness(1.1);
+      }
+
+      /* ============ tabs ============ */
+      .tabs {
+        display: flex;
+        gap: 0;
+        height: 32px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg);
+        padding: 0 12px;
+      }
+      .tab {
+        background: transparent;
+        border: 0;
+        color: var(--text-muted);
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 0 14px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tab .count {
+        font-size: 9px;
+        padding: 1px 5px;
+        border-radius: 999px;
+        background: var(--bg-elev);
+        color: var(--text-dim);
+      }
+      .tab .count.has {
+        background: rgba(255, 182, 39, 0.15);
+        color: var(--accent);
+      }
+      .tab .count.bad {
+        background: rgba(248, 113, 113, 0.15);
+        color: var(--danger);
+      }
+      .tab:hover {
+        color: var(--text-dim);
+      }
+      .tab.active {
+        color: var(--text);
+        border-bottom-color: var(--accent);
+      }
+
+      /* ============ layout ============ */
+      .body {
+        position: absolute;
+        top: 68px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+      }
+      .pane {
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        display: none;
+      }
+      .pane.active {
+        display: block;
+      }
+
+      /* ============ empty state ============ */
+      .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 60px 24px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+      .empty h3 {
+        margin: 4px 0 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dim);
+        letter-spacing: -0.01em;
+      }
+      .empty .hint {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      /* ============ network row ============ */
+      .row {
+        display: grid;
+        grid-template-columns: 60px 70px 1fr 70px 70px;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        cursor: pointer;
+      }
+      .row:hover {
+        background: var(--bg-elev);
+      }
+      .row.expanded {
+        background: var(--bg-elev);
+      }
+      .row .method {
+        font-weight: 600;
+        color: var(--text-dim);
+      }
+      .row .status {
+        font-weight: 600;
+      }
+      .row .status.s2xx {
+        color: var(--success);
+      }
+      .row .status.s3xx {
+        color: var(--info);
+      }
+      .row .status.s4xx {
+        color: var(--warn);
+      }
+      .row .status.s5xx {
+        color: var(--danger);
+      }
+      .row .url {
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row .size,
+      .row .time {
+        text-align: right;
+        color: var(--text-muted);
+      }
+      .row .findings {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 6px;
+      }
+      .row .finding {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(255, 182, 39, 0.35);
+        color: var(--accent);
+        font-size: 10px;
+      }
+      .row .finding.danger {
+        background: rgba(248, 113, 113, 0.08);
+        border-color: rgba(248, 113, 113, 0.4);
+        color: var(--danger);
+      }
+      .row .finding.info {
+        background: rgba(107, 174, 214, 0.08);
+        border-color: rgba(107, 174, 214, 0.4);
+        color: var(--info);
+      }
+      .detail {
+        display: none;
+        background: var(--bg-elev-2);
+        padding: 10px 12px 12px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--text-dim);
+      }
+      .detail.open {
+        display: block;
+      }
+      .detail .kv {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 4px 12px;
+        margin-bottom: 6px;
+      }
+      .detail .kv .k {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 9px;
+      }
+      .detail .kv .v {
+        color: var(--text);
+        word-break: break-all;
+      }
+      .detail pre {
+        margin: 6px 0 0;
+        padding: 8px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        max-height: 180px;
+        overflow: auto;
+        font-size: 10px;
+        color: var(--text-dim);
+      }
+      .detail h4 {
+        margin: 10px 0 4px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      .detail .fix-prompt {
+        margin-top: 6px;
+        padding: 8px;
+        background: var(--bg);
+        border-left: 2px solid var(--accent);
+        color: var(--text);
+        font-size: 10.5px;
+        white-space: pre-wrap;
+      }
+      .detail .copy-btn {
+        background: var(--accent);
+        color: var(--bg);
+        border: 0;
+        padding: 4px 8px;
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border-radius: 3px;
+        margin-top: 6px;
+      }
+      .detail .copy-btn.ok {
+        background: var(--success);
+      }
+
+      /* ============ console row ============ */
+      .console-row {
+        display: grid;
+        grid-template-columns: 70px 50px 1fr;
+        align-items: start;
+        gap: 8px;
+        padding: 5px 12px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .console-row .time {
+        color: var(--text-muted);
+        font-size: 9.5px;
+      }
+      .console-row .lvl {
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .console-row .lvl.log {
+        color: var(--text-muted);
+      }
+      .console-row .lvl.info {
+        color: var(--info);
+      }
+      .console-row .lvl.warn {
+        color: var(--accent);
+      }
+      .console-row .lvl.error {
+        color: var(--danger);
+      }
+      .console-row .msg {
+        color: var(--text);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .console-row .pii {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 1px 5px;
+        font-size: 9px;
+        background: rgba(248, 113, 113, 0.1);
+        border: 1px solid rgba(248, 113, 113, 0.4);
+        color: var(--danger);
+        border-radius: 3px;
+      }
+
+      /* ============ summary pane ============ */
+      .summary {
+        padding: 16px 12px;
+      }
+      .summary h3 {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin: 0 0 8px;
+      }
+      .summary .card {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .summary .stat {
+        padding: 12px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+      }
+      .summary .stat::before {
+        content: "";
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        width: 2px;
+        height: 14px;
+        background: var(--accent);
+      }
+      .summary .stat .label {
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .summary .stat .value {
+        font-family: var(--mono);
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text);
+        margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+      .summary .stat .value.danger {
+        color: var(--danger);
+      }
+      .summary .stat .value.warn {
+        color: var(--accent);
+      }
+      .summary .stat .value.good {
+        color: var(--success);
+      }
+      .summary .stat .sub {
+        font-family: var(--mono);
+        font-size: 9px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .summary .findings-list {
+        margin-top: 6px;
+      }
+      .summary .findings-list .item {
+        padding: 10px 12px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin-bottom: 6px;
+        position: relative;
+        padding-left: 18px;
+      }
+      .summary .findings-list .item::before {
+        content: "";
+        position: absolute;
+        top: 12px;
+        left: 8px;
+        width: 2px;
+        height: 14px;
+        background: var(--accent);
+      }
+      .summary .findings-list .item.critical::before {
+        background: var(--danger);
+      }
+      .summary .findings-list .item.medium::before {
+        background: var(--info);
+      }
+      .summary .findings-list .item.low::before {
+        background: var(--text-muted);
+      }
+      .summary .findings-list .title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .summary .findings-list .sev {
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 1px 5px;
+        border-radius: 2px;
+        background: rgba(255, 182, 39, 0.15);
+        color: var(--accent);
+      }
+      .summary .findings-list .sev.critical {
+        background: rgba(248, 113, 113, 0.15);
+        color: var(--danger);
+      }
+      .summary .findings-list .sev.medium {
+        background: rgba(107, 174, 214, 0.15);
+        color: var(--info);
+      }
+      .summary .findings-list .sev.low {
+        background: var(--bg-elev-2);
+        color: var(--text-muted);
+      }
+      .summary .findings-list .check-id {
+        font-family: var(--mono);
+        font-size: 9px;
+        color: var(--text-muted);
+        margin-left: auto;
+      }
+      .summary .findings-list .title {
+        font-size: 12px;
+        color: var(--text);
+        font-weight: 500;
+      }
+      .summary .findings-list .desc {
+        margin-top: 4px;
+        font-size: 11px;
+        color: var(--text-dim);
+        line-height: 1.45;
+      }
+      .summary .empty-card {
+        padding: 24px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        text-align: center;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="bar"></span>
+        <strong>EDITH</strong>
+        <span class="sub">live audit</span>
+      </div>
+      <span class="grow"></span>
+      <span id="origin-pill" class="pill">—</span>
+      <span id="score-pill" class="pill score">—</span>
+      <button id="clear-btn" type="button">Clear</button>
+      <button id="rescan-btn" type="button" class="primary">Rescan</button>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab active" data-tab="summary">
+        Summary <span class="count" id="count-summary">0</span>
+      </button>
+      <button type="button" class="tab" data-tab="network">
+        Network <span class="count" id="count-network">0</span>
+      </button>
+      <button type="button" class="tab" data-tab="console">
+        Console <span class="count" id="count-console">0</span>
+      </button>
+    </nav>
+
+    <section class="body">
+      <div id="pane-summary" class="pane active">
+        <div class="summary">
+          <h3>Live snapshot</h3>
+          <div class="card">
+            <div class="stat">
+              <div class="label">Score</div>
+              <div id="stat-score" class="value">—</div>
+              <div class="sub">/100 (live)</div>
+            </div>
+            <div class="stat">
+              <div class="label">Requests</div>
+              <div id="stat-req" class="value">0</div>
+              <div id="stat-req-sub" class="sub">0 errors</div>
+            </div>
+            <div class="stat">
+              <div class="label">Console errors</div>
+              <div id="stat-err" class="value">0</div>
+              <div id="stat-warn-sub" class="sub">0 warnings</div>
+            </div>
+            <div class="stat">
+              <div class="label">Findings</div>
+              <div id="stat-find" class="value">0</div>
+              <div id="stat-find-sub" class="sub">EDITH checks</div>
+            </div>
+          </div>
+
+          <h3>SEO insights — from the live network</h3>
+          <div class="summary-grid" style="margin-bottom: 12px;">
+            <div class="stat">
+              <div class="label">Page bytes</div>
+              <div id="seo-bytes" class="value">—</div>
+              <div id="seo-bytes-sub" class="sub">across 0 resources</div>
+            </div>
+            <div class="stat">
+              <div class="label">Render-blocking</div>
+              <div id="seo-blocking" class="value">0</div>
+              <div id="seo-blocking-sub" class="sub">scripts / CSS</div>
+            </div>
+            <div class="stat">
+              <div class="label">Uncompressed</div>
+              <div id="seo-uncompressed" class="value">0</div>
+              <div id="seo-uncompressed-sub" class="sub">no Content-Encoding</div>
+            </div>
+            <div class="stat">
+              <div class="label">Cache misses</div>
+              <div id="seo-cache" class="value">0</div>
+              <div id="seo-cache-sub" class="sub">no Cache-Control</div>
+            </div>
+          </div>
+
+          <h3>Live findings</h3>
+          <div id="findings-list" class="findings-list">
+            <div class="empty-card">
+              <div style="font-size: 11px;">No findings yet — interact with the page to start auditing.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pane-network" class="pane">
+        <div id="net-list">
+          <div class="empty">
+            <h3>No requests captured yet</h3>
+            <div class="hint">Reload the page or interact with it to populate the feed</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pane-console" class="pane">
+        <div id="con-list">
+          <div class="empty">
+            <h3>Console silence</h3>
+            <div class="hint">Console output captured live · errors and warnings surface here</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script src="panel.js"></script>
+  </body>
+</html>
