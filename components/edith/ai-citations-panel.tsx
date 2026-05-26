@@ -66,53 +66,43 @@ export function AiCitationsPanel({
 
   if (citations.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)]/80 p-6 backdrop-blur-sm">
-        <span
-          aria-hidden
-          className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
-        />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
-              First-of-its-kind
-            </div>
-            <h3 className="mt-2 text-[14.5px] font-semibold text-[var(--text)]">
-              Ask Claude what it knows about your brand
-            </h3>
-            <p className="mt-1 max-w-[60ch] text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
-              EDITH queries Claude (with web search) about your brand and
-              records: is your own domain cited? which competitor domains
-              are cited instead? what&apos;s the overall sentiment? Run
-              weekly to track AI-search visibility — the new SEO.
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {repos.length > 0 && (
-              <select
-                value={selectedRepo}
-                onChange={(e) => setSelectedRepo(e.target.value)}
-                className="h-8 rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text)] focus:outline-none"
-              >
-                {repos.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <button
-              type="button"
-              onClick={runCheck}
-              disabled={pending || !selectedRepo}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bg)] shadow-[0_0_20px_-8px_var(--accent-glow)] hover:brightness-110 disabled:opacity-50"
+      <div className="flex h-full flex-col gap-4">
+        <p className="text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
+          Ask Claude what it knows about your brand. EDITH parses the
+          response — is your domain cited, which competitors are named,
+          what&apos;s the sentiment.
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <Pill>own citations</Pill>
+          <Pill>competitors</Pill>
+          <Pill>sentiment</Pill>
+        </div>
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
+          {repos.length > 0 && (
+            <select
+              value={selectedRepo}
+              onChange={(e) => setSelectedRepo(e.target.value)}
+              className="h-9 min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text)] focus:outline-none"
             >
-              <Sparkles className="h-3 w-3" strokeWidth={2} />
-              {pending ? "Asking…" : "Run check"}
-            </button>
-          </div>
+              {repos.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            type="button"
+            onClick={runCheck}
+            disabled={pending || !selectedRepo}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-3.5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bg)] shadow-[0_0_20px_-8px_var(--accent-glow)] hover:brightness-110 disabled:opacity-50"
+          >
+            <Sparkles className="h-3 w-3" strokeWidth={2} />
+            {pending ? "Asking…" : "Run check"}
+          </button>
         </div>
         {msg && (
-          <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
             {msg}
           </div>
         )}
@@ -158,18 +148,14 @@ export function AiCitationsPanel({
         )}
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)]/80 p-5">
-        <span
-          aria-hidden
-          className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
-        />
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+      <div className="rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)]/40 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             <Bot
-              className="h-4 w-4 text-[var(--accent)]"
+              className="h-4 w-4 shrink-0 text-[var(--accent)]"
               strokeWidth={1.75}
             />
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
+            <span className="truncate font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
               {latest.model} · {new Date(latest.queried_at).toLocaleString()}
             </span>
           </div>
@@ -189,47 +175,44 @@ export function AiCitationsPanel({
                   : SENTIMENT_TONE.negative
               }`}
             >
-              {latest.cited ? "Own-site cited" : "Not cited"}
+              {latest.cited ? "Cited" : "Not cited"}
             </span>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <CiteList
-            title="Cited from your domain"
+            title="Own citations"
             items={latest.own_citations}
-            empty="Claude didn't cite your domain — work on your llms.txt, sitemap, and Q&A structure."
+            empty="No own-domain citations — work on llms.txt + Q&A structure."
           />
           <CiteList
-            title="Cited from competitors"
+            title="Competitors cited"
             items={latest.competitor_citations.map((c) => ({
               url: c.url,
               title: c.domain,
             }))}
-            empty="No competitor sites cited in the response."
+            empty="No competitor sites cited in this response."
           />
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
+        </div>
+
+        {latest.competitors_mentioned.length > 0 && (
+          <div className="mt-4">
+            <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
               Competitors named
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {latest.competitors_mentioned.length === 0 ? (
-                <span className="font-mono text-[11px] text-[var(--text-dim)]">
-                  —
+              {latest.competitors_mentioned.slice(0, 12).map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center rounded border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-dim)]"
+                >
+                  {c}
                 </span>
-              ) : (
-                latest.competitors_mentioned.slice(0, 12).map((c) => (
-                  <span
-                    key={c}
-                    className="inline-flex items-center rounded border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-dim)]"
-                  >
-                    {c}
-                  </span>
-                ))
-              )}
+              ))}
             </div>
           </div>
-        </div>
+        )}
 
         <details
           className="mt-4"
@@ -247,6 +230,14 @@ export function AiCitationsPanel({
         </details>
       </div>
     </div>
+  );
+}
+
+function Pill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+      {children}
+    </span>
   );
 }
 

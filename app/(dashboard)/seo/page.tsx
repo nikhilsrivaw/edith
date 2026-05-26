@@ -355,134 +355,145 @@ export default async function SeoDashboard() {
             : "Run a scan to see SEO posture"
         }
       />
-      <main className="flex-1 px-6 py-8">
-        {/* === SCAN-FIRST PROMPT — shown only if no SEO issues yet ===
-             We keep this above the GSC / AI panels so the user knows they
-             still need to scan for the issue-driven sections to populate,
-             but the rest of the page (GSC, citations, snippet) is usable
-             immediately so they can configure those independently.        */}
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8">
+        {/* ── ZERO-STATE BANNER ── only when nothing scanned + no runtime */}
         {seoIssues.length === 0 && runtime.length === 0 && (
-          <div className="mb-8">
-            <EmptyState />
-          </div>
+          <ZeroStateBanner />
         )}
 
-        {/* === HERO — only when there are issues to score ============== */}
+        {/* ── PRIMARY: SCORE + SUB-GRADES, only when data exists ── */}
         {seoIssues.length > 0 && (
-          <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-            <ScoreCard score={overall} count={seoIssues.length} />
-            <SubGradeGrid subGrades={subGrades} />
-          </div>
+          <ScoreHero
+            score={overall}
+            subGrades={subGrades}
+            issueCount={seoIssues.length}
+          />
         )}
 
-        {/* === LIVE CWV STRIP === */}
+        {/* ── REAL-USER CORE WEB VITALS ── */}
         {runtime.length > 0 && (
-          <div className={seoIssues.length > 0 ? "mt-8" : ""}>
-            <SectionHeader
-              eyebrow="Real-user measurements"
-              title="Core Web Vitals from your extension"
-              right={
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  {timeAgo(runtime[0]!.captured_at)}
-                </span>
-              }
-            />
+          <Section
+            eyebrow="Real-user measurements"
+            title="Core Web Vitals"
+            meta={`captured ${timeAgo(runtime[0]!.captured_at)}`}
+            tight
+            className={seoIssues.length > 0 ? "mt-12" : "mt-8"}
+          >
             <CwvStrip latest={runtime[0]!} />
-          </div>
+          </Section>
         )}
 
-        {/* === PERFORMANCE BREAKDOWN === */}
+        {/* ── PERFORMANCE BREAKDOWN ── */}
         {runtime[0] &&
           (runtime[0].cls_sources?.length ||
             runtime[0].long_tasks ||
             runtime[0].resources) && (
-            <div className="mt-8">
-              <SectionHeader
-                eyebrow="Root-cause"
-                title="Performance breakdown"
-                right={
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                    Lighthouse doesn&apos;t tell you this
-                  </span>
-                }
-              />
+            <Section
+              eyebrow="Root-cause"
+              title="Performance breakdown"
+              meta="What Lighthouse skips"
+              tight
+              className="mt-10"
+            >
               <div className="grid gap-3 lg:grid-cols-3">
                 <ClsSourcesPanel sources={runtime[0].cls_sources ?? []} />
                 <LongTasksPanel data={runtime[0].long_tasks} />
                 <ResourcesPanel data={runtime[0].resources} />
               </div>
-            </div>
+            </Section>
           )}
 
-        {/* === SEARCH CONSOLE — ALWAYS rendered, has its own empty state */}
-        <div className={hasData ? "mt-10" : ""}>
-          <SectionHeader
-            eyebrow="Real Google data"
-            title="Search Console — last 28 days"
-            right={
-              gscConnected ? (
-                <GscSyncButton />
-              ) : (
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  Not connected
-                </span>
-              )
-            }
-          />
-          <GscPanel connected={gscConnected} summary={gscSummary} />
-        </div>
-
-        {/* === AI CITATIONS — ALWAYS rendered, panel handles empty state */}
-        <div className="mt-10">
-          <SectionHeader
-            eyebrow="AI search positioning"
-            title="What LLMs say about your brand"
-            right={
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                No other tool does this
-              </span>
-            }
-          />
-          <AiCitationsPanel initial={citations} repos={reposList} />
-        </div>
-
-        {/* === AI BOT DETECTION SNIPPET — ALWAYS rendered, educational */}
-        <div className="mt-10">
-          <SectionHeader
-            eyebrow="Detect AI crawlers"
-            title="Middleware snippet for AI bot traffic"
-            right={
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Drop into middleware.ts
-              </span>
-            }
-          />
-          <AiBotSnippet />
-        </div>
-
-        {/* === ISSUES TABLE — only when issues exist ===================== */}
-        {seoIssues.length > 0 && (
-          <div className="mt-10">
-            <SectionHeader
-              eyebrow="Findings"
-              title="Open SEO issues"
-              right={
-                <Link
-                  href="/issues?dimension=seo"
-                  className="hidden items-center gap-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--accent)] hover:brightness-110 sm:inline-flex"
-                >
-                  View in Issues <ArrowRight className="h-3 w-3" />
-                </Link>
+        {/* ── INTEGRATIONS: GSC + AI Citations, side-by-side on lg+ ── */}
+        <div className={hasData ? "mt-12" : "mt-8"}>
+          <div className="mb-5 flex items-baseline justify-between gap-4">
+            <div>
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
+                Integrations
+              </div>
+              <h2 className="mt-1 text-[16px] font-semibold tracking-[-0.01em] text-[var(--text)]">
+                Bring in real data
+              </h2>
+            </div>
+            <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)] sm:inline">
+              Google · LLMs
+            </span>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <IntegrationCard
+              eyebrow="Google Search Console"
+              meta={
+                gscConnected ? (
+                  <GscSyncButton />
+                ) : (
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    Not connected
+                  </span>
+                )
               }
-            />
+            >
+              <GscPanel connected={gscConnected} summary={gscSummary} />
+            </IntegrationCard>
+            <IntegrationCard
+              eyebrow="LLM citations"
+              meta={
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  Claude · GPT · Perplexity
+                </span>
+              }
+            >
+              <AiCitationsPanel initial={citations} repos={reposList} />
+            </IntegrationCard>
+          </div>
+        </div>
+
+        {/* ── ISSUES TABLE — only when issues exist ── */}
+        {seoIssues.length > 0 && (
+          <Section
+            eyebrow="Findings"
+            title={`${seoIssues.length} open SEO issues`}
+            meta={
+              <Link
+                href="/issues?dimension=seo"
+                className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--accent)] hover:brightness-110"
+              >
+                View all <ArrowRight className="h-3 w-3" />
+              </Link>
+            }
+            tight
+            className="mt-12"
+          >
             {autofixableFrom(seoIssues).length > 0 && (
               <div className="mb-4">
                 <SeoAutofixButton issues={autofixableFrom(seoIssues)} />
               </div>
             )}
             <IssuesList issues={seoIssues.slice(0, 30)} />
-          </div>
+          </Section>
         )}
+
+        {/* ── AI BOT SNIPPET — collapsed by default at the very bottom ── */}
+        <div className="mt-12">
+          <details className="group rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/40">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-mono text-[10.5px] uppercase tracking-[0.22em] text-[var(--text-dim)] hover:text-[var(--text)]">
+              <span className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                Detect AI crawler traffic
+                <span className="text-[var(--text-muted)] normal-case tracking-normal">
+                  · middleware.ts snippet
+                </span>
+              </span>
+              <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--text-muted)] group-open:hidden">
+                Expand
+              </span>
+              <span className="hidden font-mono text-[10px] tracking-[0.18em] text-[var(--text-muted)] group-open:inline">
+                Collapse
+              </span>
+            </summary>
+            <div className="border-t border-[var(--border)] px-5 py-4">
+              <AiBotSnippet />
+            </div>
+          </details>
+        </div>
       </main>
     </>
   );
@@ -490,101 +501,247 @@ export default async function SeoDashboard() {
 
 /* ============================== UI ============================== */
 
-function ScoreCard({ score, count }: { score: number; count: number }) {
-  const grade =
-    score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 40 ? "D" : "F";
-  const tone =
-    score >= 75
-      ? "text-[var(--success)]"
-      : score >= 50
-        ? "text-[var(--accent)]"
-        : "text-[var(--danger)]";
-
+/** Compact section wrapper — eyebrow + title + optional meta on the right. */
+function Section({
+  eyebrow,
+  title,
+  meta,
+  children,
+  tight,
+  className = "",
+}: {
+  eyebrow: string;
+  title: string;
+  meta?: React.ReactNode;
+  children: React.ReactNode;
+  tight?: boolean;
+  className?: string;
+}) {
   return (
-    <MagicCard className="relative overflow-hidden p-6">
+    <section className={className}>
+      <div className={`${tight ? "mb-4" : "mb-5"} flex items-baseline justify-between gap-4`}>
+        <div>
+          <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
+            {eyebrow}
+          </div>
+          <h2 className="mt-1 text-[16px] font-semibold tracking-[-0.01em] text-[var(--text)]">
+            {title}
+          </h2>
+        </div>
+        {meta && (
+          <div className="shrink-0 self-end pb-0.5 text-right">{meta}</div>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Standardised wrapper for the two integration cards (GSC + AI). */
+function IntegrationCard({
+  eyebrow,
+  meta,
+  children,
+}: {
+  eyebrow: string;
+  meta?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/55">
       <span
         aria-hidden
         className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
       />
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
-        EDITH SEO Score
-      </div>
-      <div className="mt-4 flex items-baseline gap-3">
-        <span
-          className={`font-mono text-[72px] font-semibold leading-none tabular-nums ${tone}`}
-        >
-          <NumberTicker value={score} duration={1800} />
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)]/70 px-5 py-3">
+        <span className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
+          {eyebrow}
         </span>
-        <span className="font-mono text-[14px] text-[var(--text-dim)]">/100</span>
-        <span
-          className={`ml-2 inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[12px] font-semibold tabular-nums ${tone} border-[var(--border)] bg-[var(--bg-elev-2)]`}
-        >
-          {grade}
-        </span>
+        {meta}
       </div>
-      <p className="mt-4 max-w-[36ch] text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
-        Weighted across six sub-grades. We block-merge PRs that drop this more than 8 points.
-      </p>
-      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--border)] pt-4">
-        <Mini label="Open issues" value={count.toString()} />
-        <Mini label="Grading" value={grade} />
-      </div>
-    </MagicCard>
+      <div className="flex-1 p-4">{children}</div>
+    </div>
   );
 }
 
-function SubGradeGrid({
+/**
+ * Score hero: large radial gauge on the left, sub-grade list on the right.
+ * Single panel — cleaner than the old two-card grid.
+ */
+function ScoreHero({
+  score,
   subGrades,
+  issueCount,
 }: {
+  score: number;
   subGrades: Record<keyof typeof SUB_DIM_META, number>;
+  issueCount: number;
 }) {
-  const order = Object.keys(SUB_DIM_META) as Array<keyof typeof SUB_DIM_META>;
+  const grade =
+    score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 40 ? "D" : "F";
+  const tone =
+    score >= 75 ? "var(--success)" : score >= 50 ? "var(--accent)" : "var(--danger)";
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {order.map((k) => {
-        const meta = SUB_DIM_META[k];
-        const v = subGrades[k];
-        const tone =
-          v >= 75
-            ? "text-[var(--success)]"
-            : v >= 50
-              ? "text-[var(--accent)]"
-              : "text-[var(--danger)]";
-        return (
-          <SpotlightCard key={k} className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                {meta.label}
-              </span>
-              <span className="font-mono text-[9px] tabular-nums text-[var(--text-muted)]">
-                {meta.weight}%
-              </span>
-            </div>
-            <div
-              className={`mt-3 font-mono text-[30px] font-semibold leading-none tabular-nums ${tone}`}
-            >
-              <NumberTicker value={v} duration={1400} />
-              <span className="ml-1 text-[12px] text-[var(--text-muted)]">/100</span>
-            </div>
-            <p className="mt-3 line-clamp-2 text-[11.5px] leading-[1.5] text-[var(--text-dim)]">
-              {meta.blurb}
+    <div className="relative grid gap-6 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/55 p-6 lg:grid-cols-[280px_1fr]">
+      <span
+        aria-hidden
+        className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
+      />
+      {/* Gauge */}
+      <div className="flex flex-col items-center justify-center gap-3">
+        <RadialGauge value={score} color={tone} />
+        <div className="text-center">
+          <div
+            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em]"
+            style={{ color: tone }}
+          >
+            Grade {grade}
+          </div>
+          <div className="mt-2 font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            {issueCount} open SEO issue{issueCount === 1 ? "" : "s"}
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-grade list */}
+      <div>
+        <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
+          Sub-grades · weighted average
+        </div>
+        <div className="mt-4 space-y-3">
+          {(Object.keys(SUB_DIM_META) as Array<keyof typeof SUB_DIM_META>).map(
+            (k) => (
+              <SubGradeRow key={k} k={k} value={subGrades[k]} />
+            ),
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SubGradeRow({
+  k,
+  value,
+}: {
+  k: keyof typeof SUB_DIM_META;
+  value: number;
+}) {
+  const meta = SUB_DIM_META[k];
+  const tone =
+    value >= 75
+      ? "bg-[var(--success)] text-[var(--success)]"
+      : value >= 50
+        ? "bg-[var(--accent)] text-[var(--accent)]"
+        : "bg-[var(--danger)] text-[var(--danger)]";
+  const [bgClass, textClass] = tone.split(" ");
+  return (
+    <div className="grid items-center gap-3 sm:grid-cols-[148px_1fr_44px]">
+      <div className="min-w-0">
+        <div className="truncate text-[12.5px] font-medium text-[var(--text)]">
+          {meta.label}
+        </div>
+        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          {meta.weight}% weight
+        </div>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]">
+        <div
+          className={`h-full rounded-full ${bgClass}`}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+      <div
+        className={`text-right font-mono text-[13px] font-semibold tabular-nums ${textClass}`}
+      >
+        <NumberTicker value={value} duration={1400} />
+      </div>
+    </div>
+  );
+}
+
+/** Compact circular progress with the score in the middle. */
+function RadialGauge({ value, color }: { value: number; color: string }) {
+  const size = 200;
+  const stroke = 10;
+  const radius = (size - stroke) / 2;
+  const circ = 2 * Math.PI * radius;
+  const offset = circ - (circ * Math.max(0, Math.min(100, value))) / 100;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="var(--border)"
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{
+            transition: "stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1)",
+            filter: `drop-shadow(0 0 12px ${color})`,
+          }}
+        />
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <div
+          className="font-mono text-[56px] font-semibold leading-none tabular-nums"
+          style={{ color }}
+        >
+          <NumberTicker value={value} duration={1600} />
+        </div>
+        <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
+          EDITH SEO score
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Zero-state banner — clean, single-purpose, replaces the old full-page empty state. */
+function ZeroStateBanner() {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/55 p-6">
+      <span
+        aria-hidden
+        className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
+      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]">
+            <Globe className="h-4 w-4" strokeWidth={1.75} />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--text)]">
+              No scans yet — but you can still set up the integrations below.
+            </h2>
+            <p className="mt-1 max-w-[68ch] text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
+              Run a scan to populate the EDITH SEO score, sub-grades, and the
+              issue list. Until then, connect Search Console + run an LLM
+              citation check from the cards below.
             </p>
-            {/* sub-grade bar */}
-            <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--border)]">
-              <div
-                className={`h-full rounded-full ${
-                  v >= 75
-                    ? "bg-[var(--success)]"
-                    : v >= 50
-                      ? "bg-[var(--accent)]"
-                      : "bg-[var(--danger)]"
-                }`}
-                style={{ width: `${v}%` }}
-              />
-            </div>
-          </SpotlightCard>
-        );
-      })}
+          </div>
+        </div>
+        <Link
+          href="/repos"
+          className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-3.5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bg)] shadow-[0_0_20px_-8px_var(--accent-glow)] hover:brightness-110"
+        >
+          Pick a repo to scan <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
     </div>
   );
 }
@@ -1120,100 +1277,106 @@ function GscPanel({
 }) {
   if (!connected) {
     return (
-      <MagicCard className="relative overflow-hidden p-6">
-        <span
-          aria-hidden
-          className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
-        />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-[14.5px] font-semibold text-[var(--text)]">
-              Connect Google Search Console
-            </h3>
-            <p className="mt-1 max-w-[60ch] text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
-              Pulls real ranking data — impressions, clicks, CTR, average
-              position per page and query. EDITH then cross-references it
-              with on-page issues so &ldquo;page ranks #14 for X with weak
-              meta description&rdquo; becomes one actionable card.
-            </p>
-          </div>
+      <div className="flex h-full flex-col gap-4">
+        <p className="text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
+          Real ranking data — impressions, clicks, CTR, position per page
+          and query. EDITH cross-references it with your on-page issues.
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <Pill>impressions</Pill>
+          <Pill>clicks</Pill>
+          <Pill>position</Pill>
+        </div>
+        <div className="mt-auto pt-2">
           <GscConnectButton />
         </div>
-      </MagicCard>
+      </div>
     );
   }
 
   if (!summary || summary.totalImpressions === 0) {
     return (
-      <SpotlightCard className="p-8 text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-3 py-8 text-center">
         <Search
-          className="mx-auto h-6 w-6 text-[var(--text-muted)]"
+          className="h-6 w-6 text-[var(--text-muted)]"
           strokeWidth={1.5}
         />
-        <p className="mt-3 text-[13px] text-[var(--text-dim)]">
-          Connected — but no metrics synced yet. Click &ldquo;Sync now&rdquo;
-          above, or bind a repo to a Search Console property first.
+        <p className="max-w-[40ch] text-[12.5px] text-[var(--text-dim)]">
+          Connected — but no metrics synced yet. Click <b className="text-[var(--text)]">Sync now</b> in the header, or bind a repo to a Search Console property.
         </p>
-      </SpotlightCard>
+      </div>
     );
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[1.1fr_1.9fr]">
-      <SpotlightCard className="relative overflow-hidden p-5">
-        <span
-          aria-hidden
-          className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <CompactStat
+          label="Impressions"
+          value={summary.totalImpressions.toLocaleString()}
         />
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
-          Totals (28d)
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <BigStat
-            label="Impressions"
-            value={summary.totalImpressions.toLocaleString()}
-          />
-          <BigStat
-            label="Clicks"
-            value={summary.totalClicks.toLocaleString()}
-          />
-          <BigStat
-            label="Avg CTR"
-            value={`${(summary.avgCtr * 100).toFixed(2)}%`}
-          />
-          <BigStat
-            label="Avg pos"
-            value={summary.avgPosition.toFixed(1)}
-          />
-        </div>
-      </SpotlightCard>
+        <CompactStat
+          label="Clicks"
+          value={summary.totalClicks.toLocaleString()}
+        />
+        <CompactStat
+          label="Avg CTR"
+          value={`${(summary.avgCtr * 100).toFixed(2)}%`}
+        />
+        <CompactStat
+          label="Avg pos"
+          value={summary.avgPosition.toFixed(1)}
+        />
+      </div>
 
-      <MagicCard className="overflow-hidden">
-        <div className="grid divide-y divide-[var(--border)] md:grid-cols-3 md:divide-y-0 md:divide-x">
-          <GscListColumn
-            title="Top pages"
-            rows={summary.topPages.map((p) => ({
-              primary: shortPath(p.page),
-              secondary: `${p.impressions.toLocaleString()} imp · pos ${p.position.toFixed(1)}`,
-            }))}
-          />
-          <GscListColumn
-            title="Top queries"
-            rows={summary.topQueries.map((q) => ({
-              primary: q.query,
-              secondary: `${q.impressions.toLocaleString()} imp · pos ${q.position.toFixed(1)}`,
-            }))}
-          />
-          <GscListColumn
-            title="Low-hanging fruit"
-            subtitle="pos 11-20 with ≥50 imp"
-            rows={summary.lowHangingFruit.map((q) => ({
-              primary: q.query,
-              secondary: `pos ${q.position.toFixed(1)} · ${q.impressions.toLocaleString()} imp`,
-            }))}
-          />
-        </div>
-      </MagicCard>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <GscListColumn
+          title="Top pages"
+          rows={summary.topPages.slice(0, 5).map((p) => ({
+            primary: shortPath(p.page),
+            secondary: `${p.impressions.toLocaleString()} imp · pos ${p.position.toFixed(1)}`,
+          }))}
+        />
+        <GscListColumn
+          title="Top queries"
+          rows={summary.topQueries.slice(0, 5).map((q) => ({
+            primary: q.query,
+            secondary: `${q.impressions.toLocaleString()} imp · pos ${q.position.toFixed(1)}`,
+          }))}
+        />
+      </div>
+
+      {summary.lowHangingFruit.length > 0 && (
+        <GscListColumn
+          title="Low-hanging fruit"
+          subtitle="pos 11-20 with ≥50 impressions — one tweak away from page 1"
+          rows={summary.lowHangingFruit.slice(0, 5).map((q) => ({
+            primary: q.query,
+            secondary: `pos ${q.position.toFixed(1)} · ${q.impressions.toLocaleString()} imp`,
+          }))}
+        />
+      )}
+    </div>
+  );
+}
+
+function Pill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+      {children}
+    </span>
+  );
+}
+
+function CompactStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)]/60 px-3 py-2">
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+        {label}
+      </div>
+      <div className="mt-1 font-mono text-[15px] font-semibold tabular-nums text-[var(--text)]">
+        {value}
+      </div>
     </div>
   );
 }
@@ -1228,8 +1391,8 @@ function GscListColumn({
   rows: Array<{ primary: string; secondary: string }>;
 }) {
   return (
-    <div className="px-5 py-4">
-      <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
+    <div className="rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)]/40 p-3">
+      <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
         {title}
       </div>
       {subtitle && (
@@ -1240,7 +1403,7 @@ function GscListColumn({
       {rows.length === 0 ? (
         <p className="mt-3 text-[11.5px] text-[var(--text-dim)]">No data.</p>
       ) : (
-        <ul className="mt-3 space-y-2">
+        <ul className="mt-2.5 space-y-2">
           {rows.slice(0, 8).map((r, i) => (
             <li key={r.primary + i} className="min-w-0">
               <div className="truncate text-[12px] text-[var(--text)]">
@@ -1277,67 +1440,6 @@ function shortPath(url: string): string {
   } catch {
     return url;
   }
-}
-
-function EmptyState() {
-  return (
-    <SpotlightCard className="relative overflow-hidden p-10 text-center">
-      <span
-        aria-hidden
-        className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
-      />
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]">
-        <Globe className="h-6 w-6" strokeWidth={1.5} />
-      </div>
-      <h2 className="mt-5 text-[20px] font-semibold tracking-[-0.015em] text-[var(--text)]">
-        Run a scan to see SEO posture.
-      </h2>
-      <p className="mx-auto mt-3 max-w-[58ch] text-[13px] leading-[1.6] text-[var(--text-dim)]">
-        EDITH audits SEO across three vantage points: your repo source (metadata
-        exports, robots.txt, llms.txt), your deployed HTML (titles, canonicals,
-        X-Robots-Tag), and real-user Core Web Vitals via the browser extension.
-        No agency, Lighthouse, or Snyk does all three.
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link
-          href="/repos"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-3.5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bg)] hover:brightness-110"
-        >
-          Pick a repo to scan <ArrowRight className="h-3 w-3" />
-        </Link>
-        <Link
-          href="/extension"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-3.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)] transition-colors hover:border-[var(--border-hot)] hover:text-[var(--text)]"
-        >
-          Install the extension
-        </Link>
-      </div>
-    </SpotlightCard>
-  );
-}
-
-function SectionHeader({
-  eyebrow,
-  title,
-  right,
-}: {
-  eyebrow: string;
-  title: string;
-  right?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-5 flex items-baseline justify-between gap-4">
-      <div>
-        <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
-          {eyebrow}
-        </div>
-        <h2 className="mt-1.5 text-[18px] font-semibold tracking-[-0.015em] text-[var(--text)]">
-          {title}
-        </h2>
-      </div>
-      {right}
-    </div>
-  );
 }
 
 function Mini({ label, value }: { label: string; value: string }) {
