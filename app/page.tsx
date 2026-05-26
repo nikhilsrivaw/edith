@@ -59,6 +59,7 @@ export default function Home() {
         <Magic />
         <AiAware />
         <Compare />
+        <Integrations />
         <Pricing />
         <StackMarquee />
         <Faq />
@@ -1587,6 +1588,184 @@ function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ============================================================
+ * INTEGRATIONS — data-handling disclosure
+ *
+ * This section exists primarily for Google OAuth Trust & Safety review:
+ *   - Names each third-party service EDITH integrates with
+ *   - States the exact OAuth scope or permission EDITH requests
+ *   - Explains the specific user-facing purpose for that data
+ *   - Links to /legal/privacy (matches the OAuth consent screen URL)
+ *
+ * It's also useful for users — the same disclosure that satisfies a
+ * reviewer also builds trust with prospects who are about to install a
+ * GitHub App or grant Google access.
+ * ========================================================== */
+
+function Integrations() {
+  return (
+    <section id="integrations" className="relative py-24">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
+            <Lock className="h-3 w-3" strokeWidth={1.75} />
+            Integrations &amp; data handling
+          </div>
+          <h2 className="mt-7 text-[36px] font-semibold leading-[1.05] tracking-[-0.025em] text-[var(--text)] sm:text-[44px]">
+            What EDITH reads — and why.
+          </h2>
+          <p className="mx-auto mt-5 max-w-[600px] text-[14.5px] leading-[1.6] text-[var(--text-dim)]">
+            EDITH connects to a few external services to do its job. Below is
+            exactly what we ask for from each, and the user-facing purpose for
+            it. Full detail lives in the{" "}
+            <Link
+              href="/legal/privacy"
+              className="text-[var(--accent)] hover:brightness-110"
+            >
+              privacy policy
+            </Link>
+            .
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-4 lg:grid-cols-2">
+          <IntegrationCard
+            icon={GithubMark}
+            iconKind="component"
+            title="GitHub"
+            scope="GitHub App · contents:read, pull_requests:write, metadata:read"
+            purpose="Fetches source from repositories you explicitly install EDITH on, posts inline review comments + status checks on your pull requests. We never persist your full source — only short snippets (1-3 lines) attached to each finding for context."
+            optional={false}
+          />
+          <IntegrationCard
+            icon={Globe}
+            iconKind="lucide"
+            title="Google Search Console"
+            scope="OAuth scope · webmasters.readonly (read-only)"
+            purpose="Pulls aggregated search-analytics data — impressions, clicks, CTR, average position per page and query — only for properties you explicitly bind to EDITH. We cross-reference it with on-page SEO findings so 'this page ranks #14 with a weak description' becomes one actionable card. We never modify your Search Console settings or share your data with third parties. You can revoke access at any time from your Google Account."
+            optional
+          />
+          <IntegrationCard
+            icon={Bot}
+            iconKind="lucide"
+            title="Anthropic Claude"
+            scope="API · model invocation only"
+            purpose="Generates natural-language fix prompts from EDITH's findings, and (with your opt-in) queries Claude with web-search to record how LLMs answer questions about your brand. We send only the issue context — never your full codebase — and our integration disables training on customer data."
+            optional={false}
+          />
+          <IntegrationCard
+            icon={Activity}
+            iconKind="lucide"
+            title="EDITH Browser Extension"
+            scope="Chrome extension · activeTab, scripting"
+            purpose="Captures Core Web Vitals, the rendered HTML head, and console errors for pages you actively scan. Never reads form inputs, cookies, or local storage from the pages you visit. Sends data to your EDITH account only — never to third parties."
+            optional
+          />
+          <IntegrationCard
+            icon={Database}
+            iconKind="lucide"
+            title="Supabase &amp; Vercel"
+            scope="Infrastructure"
+            purpose="Hosts the EDITH dashboard, API routes, background workers, and the database that stores your scan history, scores, and findings. All traffic is TLS-encrypted; the database is encrypted at rest; row-level-security policies restrict every sensitive table to its owning organization."
+            optional={false}
+          />
+          <IntegrationCard
+            icon={Zap}
+            iconKind="lucide"
+            title="PayU"
+            scope="Payment processor"
+            purpose="Used only if you upgrade to a paid plan. PayU handles card details directly; EDITH stores only a customer reference, plan tier, and invoice metadata. We never see or store full card numbers, CVVs, or banking credentials."
+            optional
+          />
+        </div>
+
+        <div className="mx-auto mt-12 max-w-2xl rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/55 p-5 text-center">
+          <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
+            Our commitments
+          </div>
+          <p className="mt-3 text-[13px] leading-[1.55] text-[var(--text-dim)]">
+            We don&apos;t use your source code or your data to train
+            machine-learning models. We don&apos;t sell or share customer
+            data with advertisers. We delete repository contents fetched
+            for scans within minutes of the scan finishing. You can
+            revoke any OAuth grant or delete your account at any time.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/legal/privacy"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-3.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)] transition-colors hover:border-[var(--border-hot)] hover:text-[var(--text)]"
+            >
+              Privacy policy
+            </Link>
+            <Link
+              href="/legal/tos"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-3.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)] transition-colors hover:border-[var(--border-hot)] hover:text-[var(--text)]"
+            >
+              Terms of service
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IntegrationCard({
+  icon: Icon,
+  iconKind,
+  title,
+  scope,
+  purpose,
+  optional,
+}: {
+  icon: LucideIcon | typeof GithubMark;
+  iconKind: "lucide" | "component";
+  title: string;
+  scope: string;
+  purpose: string;
+  optional: boolean;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/55 p-5">
+      <span
+        aria-hidden
+        className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
+      />
+      <div className="flex items-center gap-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[var(--border)] bg-[var(--bg)] text-[var(--accent)]">
+          {iconKind === "lucide" ? (
+            <Icon className="h-4 w-4" strokeWidth={1.75} />
+          ) : (
+            <Icon className="h-4 w-4" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-[14.5px] font-semibold text-[var(--text)]">
+              {title}
+            </h3>
+            <span
+              className={`inline-flex items-center rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em] ${
+                optional
+                  ? "border-[var(--border)] bg-[var(--bg-elev-2)] text-[var(--text-muted)]"
+                  : "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]"
+              }`}
+            >
+              {optional ? "Optional" : "Required"}
+            </span>
+          </div>
+          <div className="mt-0.5 truncate font-mono text-[10px] text-[var(--text-muted)]">
+            {scope}
+          </div>
+        </div>
+      </div>
+      <p className="mt-3.5 text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
+        {purpose}
+      </p>
+    </div>
   );
 }
 

@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Globe,
+  Link2,
   Pencil,
   Plus,
   Trash2,
@@ -110,6 +111,11 @@ export function SeoTrackedSites({
 }
 
 /* ============== Row ============== */
+type GscSite = {
+  siteUrl: string;
+  permissionLevel: string;
+};
+
 function TrackedRow({
   repo,
   onEdit,
@@ -120,6 +126,11 @@ function TrackedRow({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [bindOpen, setBindOpen] = useState(false);
+  const [bindLoading, setBindLoading] = useState(false);
+  const [bindErr, setBindErr] = useState<string | null>(null);
+  const [sites, setSites] = useState<GscSite[] | null>(null);
+  const [chosenSite, setChosenSite] = useState("");
 
   function remove() {
     start(async () => {
@@ -129,6 +140,61 @@ function TrackedRow({
         body: JSON.stringify({ repoId: repo.id }),
       });
       router.refresh();
+    });
+  }
+
+  async function openBindPicker() {
+    setBindOpen(true);
+    if (sites) return; // already fetched
+    setBindLoading(true);
+    setBindErr(null);
+    try {
+      const res = await fetch("/api/gsc/sites");
+      const j = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        connected?: boolean;
+        sites?: GscSite[];
+        error?: string;
+      };
+      if (!j.ok) {
+        setBindErr(j.error ?? "Failed to load");
+      } else if (!j.connected) {
+        setBindErr("Connect Search Console first (button below).");
+      } else {
+        const filtered = (j.sites ?? []).filter(
+          (s) =>
+            s.permissionLevel === "siteOwner" ||
+            s.permissionLevel === "siteFullUser" ||
+            s.permissionLevel === "siteRestrictedUser",
+        );
+        setSites(filtered);
+        if (filtered.length > 0) setChosenSite(filtered[0]!.siteUrl);
+      }
+    } catch (err) {
+      setBindErr((err as Error).message);
+    } finally {
+      setBindLoading(false);
+    }
+  }
+
+  function submitBind() {
+    if (!chosenSite) return;
+    start(async () => {
+      const res = await fetch("/api/gsc/bind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoId: repo.id, siteUrl: chosenSite }),
+      });
+      const j = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+      if (j.ok) {
+        setBindOpen(false);
+        router.refresh();
+      } else {
+        setBindErr(j.error ?? "Bind failed");
+      }
     });
   }
 
@@ -159,6 +225,12 @@ function TrackedRow({
             {repo.liveUrl.replace(/^https?:\/\//, "")}
             <ExternalLink className="h-2.5 w-2.5" strokeWidth={1.75} />
           </a>
+          {repo.gscSiteUrl && (
+            <div className="mt-1 truncate font-mono text-[10px] text-[var(--text-muted)]">
+              GSC property:{" "}
+              <span className="text-[var(--text-dim)]">{repo.gscSiteUrl}</span>
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {confirmingRemove ? (
@@ -184,6 +256,16 @@ function TrackedRow({
             </>
           ) : (
             <>
+              {!repo.gscSiteUrl && (
+                <button
+                  type="button"
+                  onClick={openBindPicker}
+                  className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--accent)] transition-colors hover:brightness-110"
+                >
+                  <Link2 className="h-3 w-3" strokeWidth={1.75} />
+                  Link GSC
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onEdit}
@@ -204,6 +286,69 @@ function TrackedRow({
           )}
         </div>
       </div>
+
+      {/* GSC binding picker — inline expansion under the row */}
+      {bindOpen && (
+        <div className="border-t border-[var(--border)] bg-[var(--bg-elev-2)]/30 px-5 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              Link to GSC property
+            </span>
+            {bindLoading ? (
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
+                Loading…
+              </span>
+            ) : bindErr ? (
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--danger)]">
+                {bindErr}
+              </span>
+            ) : sites && sites.length === 0 ? (
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
+                No verified properties on your Google account. Verify your
+                site at{" "}
+                <a
+                  href="https://search.google.com/search-console"
+                  target="_blank"
+                  rel="noopener"
+                  className="text-[var(--accent)] hover:brightness-110"
+                >
+                  search.google.com/search-console
+                </a>{" "}
+                first.
+              </span>
+            ) : (
+              <>
+                <select
+                  value={chosenSite}
+                  onChange={(e) => setChosenSite(e.target.value)}
+                  className="h-8 min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 font-mono text-[10.5px] text-[var(--text)] outline-none focus:border-[var(--border-hot)]"
+                >
+                  {(sites ?? []).map((s) => (
+                    <option key={s.siteUrl} value={s.siteUrl}>
+                      {s.siteUrl} ({s.permissionLevel})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={submitBind}
+                  disabled={pending || !chosenSite}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bg)] shadow-[0_0_20px_-8px_var(--accent-glow)] hover:brightness-110 disabled:opacity-50"
+                >
+                  {pending ? "Linking…" : "Link"}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setBindOpen(false)}
+              className="inline-flex h-8 items-center rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)] hover:border-[var(--border-hot)] hover:text-[var(--text)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </li>
   );
 }
