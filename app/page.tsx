@@ -1562,23 +1562,26 @@ function Footer() {
             items={[
               ["About", "/about"],
               ["Customers", "/customers"],
-              ["Press", "/press"],
-              ["Contact", "/contact"],
+              ["Privacy", "/legal/privacy"],
+              ["Terms", "/legal/tos"],
             ]}
           />
         </div>
         <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
           <span>© 2026 EDITH Labs</span>
           <div className="flex items-center gap-5">
-            <Link href="/privacy" className="hover:text-[var(--text)]">
+            <Link href="/legal/privacy" className="hover:text-[var(--text)]">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-[var(--text)]">
+            <Link href="/legal/tos" className="hover:text-[var(--text)]">
               Terms
             </Link>
-            <Link href="/dpa" className="hover:text-[var(--text)]">
-              DPA
-            </Link>
+            <a
+              href="mailto:support@edith.expert"
+              className="hover:text-[var(--text)]"
+            >
+              Contact
+            </a>
             <span>v1.0.0</span>
           </div>
         </div>
