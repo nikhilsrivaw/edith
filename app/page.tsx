@@ -1695,6 +1695,10 @@ function Footer() {
             <div className="mt-5 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
               <Plug className="h-3 w-3" /> Made in India · Built with intent
             </div>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg-elev)]/60 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              <Bot className="h-3 w-3 text-[var(--accent)]" strokeWidth={1.75} />
+              Powered with Claude API
+            </div>
           </div>
           <FooterCol
             title="Product"
@@ -1702,31 +1706,30 @@ function Footer() {
               ["Pricing", "/pricing"],
               ["Changelog", "/changelog"],
               ["Docs", "/docs"],
-              ["Status", "/status"],
             ]}
           />
           <FooterCol
             title="Resources"
             items={[
-              ["Blog", "/blog"],
-              ["Open source", "/oss"],
-              ["Security", "/security"],
-              ["Compare", "/compare"],
+              ["Coverage", "/coverage"],
+              ["Compliance", "/compliance"],
+              ["Integrations", "/#integrations"],
             ]}
           />
           <FooterCol
             title="Company"
             items={[
-              ["About", "/about"],
-              ["Customers", "/customers"],
               ["Privacy", "/legal/privacy"],
               ["Terms", "/legal/tos"],
+              ["Contact", "mailto:support@edith.expert"],
             ]}
           />
         </div>
-        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-          <span>© 2026 EDITH Labs</span>
-          <div className="flex items-center gap-5">
+        <div className="mt-12 flex flex-col gap-3 border-t border-[var(--border)] pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            © 2026 Aqirox Technology Private Limited · All rights reserved
+          </div>
+          <div className="flex flex-wrap items-center gap-5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
             <Link href="/legal/privacy" className="hover:text-[var(--text)]">
               Privacy
             </Link>
@@ -1741,6 +1744,13 @@ function Footer() {
             </a>
             <span>v1.0.0</span>
           </div>
+        </div>
+        <div className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)] sm:text-left">
+          EDITH is owned and manufactured by{" "}
+          <span className="text-[var(--text-dim)]">
+            Aqirox Technology Private Limited
+          </span>
+          .
         </div>
       </div>
     </footer>
@@ -1938,16 +1948,24 @@ function FooterCol({
         {title}
       </div>
       <ul className="mt-4 space-y-2.5">
-        {items.map(([label, href]) => (
-          <li key={label}>
-            <Link
-              href={href}
-              className="text-[13px] text-[var(--text-dim)] transition-colors hover:text-[var(--text)]"
-            >
-              {label}
-            </Link>
-          </li>
-        ))}
+        {items.map(([label, href]) => {
+          const isExternal = /^(mailto:|https?:)/.test(href);
+          const cls =
+            "text-[13px] text-[var(--text-dim)] transition-colors hover:text-[var(--text)]";
+          return (
+            <li key={label}>
+              {isExternal ? (
+                <a href={href} className={cls}>
+                  {label}
+                </a>
+              ) : (
+                <Link href={href} className={cls}>
+                  {label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

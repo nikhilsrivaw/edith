@@ -6,30 +6,36 @@ import { EdithLogo } from "@/components/edith/logo";
 import { GithubMark } from "@/components/edith/github-mark";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
+type Provider = "github" | "google";
+
 export default function SignInPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<Provider | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const onSignIn = async () => {
+  const signIn = async (provider: Provider) => {
     setError(null);
-    setLoading(true);
+    setLoading(provider);
     try {
       const supabase = getSupabaseBrowser();
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
+        provider,
         options: {
           redirectTo: `${window.location.origin}/api/auth/callback`,
-          scopes: "read:user user:email repo read:org",
+          // GitHub: repo + org access for scans. Google: identity only.
+          scopes:
+            provider === "github"
+              ? "read:user user:email repo read:org"
+              : "openid email profile",
         },
       });
       if (error) {
         setError(error.message);
-        setLoading(false);
+        setLoading(null);
       }
       // On success, Supabase redirects away — no further action needed.
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in failed.");
-      setLoading(false);
+      setLoading(null);
     }
   };
 
@@ -78,24 +84,48 @@ export default function SignInPage() {
               Sign in
             </div>
             <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text)]">
-              Connect your GitHub.
+              Sign in to EDITH.
             </h1>
             <p className="mt-3 text-[14px] leading-[1.6] text-[var(--text-dim)]">
-              EDITH uses GitHub as your identity. Read-only repo access. Cancel
-              and revoke whenever you like.
+              GitHub is the fastest path — it gives EDITH read-only repo
+              access so scans work immediately. Sign in with Google if you
+              just want to browse and connect GitHub later.
             </p>
 
             <button
-              onClick={onSignIn}
-              disabled={loading}
+              onClick={() => signIn("github")}
+              disabled={loading !== null}
               className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-lg bg-[var(--accent)] font-mono text-[12px] font-semibold uppercase tracking-[0.15em] text-[var(--bg)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? (
+              {loading === "github" ? (
                 <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
               ) : (
                 <GithubMark className="h-4 w-4" />
               )}
-              {loading ? "Redirecting to GitHub…" : "Continue with GitHub"}
+              {loading === "github"
+                ? "Redirecting to GitHub…"
+                : "Continue with GitHub"}
+            </button>
+
+            <div className="my-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              <span className="h-px flex-1 bg-[var(--border)]" />
+              or
+              <span className="h-px flex-1 bg-[var(--border)]" />
+            </div>
+
+            <button
+              onClick={() => signIn("google")}
+              disabled={loading !== null}
+              className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] font-mono text-[12px] font-semibold uppercase tracking-[0.15em] text-[var(--text)] transition-all hover:border-[var(--border-hot)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading === "google" ? (
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+              ) : (
+                <GoogleMark className="h-4 w-4" />
+              )}
+              {loading === "google"
+                ? "Redirecting to Google…"
+                : "Continue with Google"}
             </button>
 
             {error && (
@@ -107,12 +137,19 @@ export default function SignInPage() {
             <div className="mt-5 flex items-start gap-2.5 rounded-md border border-[var(--border)] bg-[var(--bg-elev)] p-3">
               <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent)]" strokeWidth={1.75} />
               <p className="text-[12px] leading-[1.55] text-[var(--text-dim)]">
-                Scopes:{" "}
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text)]">
+                  GitHub scopes:
+                </span>{" "}
                 <span className="font-mono text-[11px] text-[var(--text)]">
                   read:user, user:email, repo, read:org
                 </span>
                 . The repo scope lets EDITH list your repos and read their
-                contents to scan. We never write to your code.
+                contents to scan. We never write to your code. Google sign-in
+                requests only{" "}
+                <span className="font-mono text-[11px] text-[var(--text)]">
+                  email, profile
+                </span>
+                .
               </p>
             </div>
 
@@ -129,11 +166,17 @@ export default function SignInPage() {
 
           <p className="mt-12 text-[11px] leading-[1.55] text-[var(--text-muted)]">
             By continuing you agree to our{" "}
-            <Link href="#" className="text-[var(--text-dim)] hover:text-[var(--text)]">
+            <Link
+              href="/legal/tos"
+              className="text-[var(--text-dim)] hover:text-[var(--text)]"
+            >
               Terms
             </Link>{" "}
             and{" "}
-            <Link href="#" className="text-[var(--text-dim)] hover:text-[var(--text)]">
+            <Link
+              href="/legal/privacy"
+              className="text-[var(--text-dim)] hover:text-[var(--text)]"
+            >
               Privacy Policy
             </Link>
             .
@@ -141,5 +184,33 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function GoogleMark({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className={className}
+    >
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A10.997 10.997 0 0 0 12 23Z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.1A6.59 6.59 0 0 1 5.48 12c0-.73.13-1.44.36-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.83Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.3 9.14 5.38 12 5.38Z"
+        fill="#EA4335"
+      />
+    </svg>
   );
 }
