@@ -42,7 +42,6 @@ import { MagicCard } from "@/components/spectrum-ui/magic-card";
 import { Marquee } from "@/components/spectrum-ui/marquee";
 import { Sparkles } from "@/components/spectrum-ui/sparkles";
 import { NumberTicker } from "@/components/spectrum-ui/number-ticker";
-import { OrbitingCircles } from "@/components/spectrum-ui/orbiting-circles";
 import { ScrollProgress } from "@/components/spectrum-ui/scroll-progress";
 
 export default function Home() {
@@ -960,23 +959,89 @@ function IssueRow({
 }
 
 /* ============================================================
- * AI-AWARE — orbiting circles of AI tools around EDITH
+ * AI-AWARE — live-detection panel cycling each tool's signature flaw
  * ========================================================== */
 
+type AiSignature = {
+  label: string;
+  color: string;
+  file: string;
+  pattern: string;
+  flag: string;
+};
+
+const AI_SIGNATURES: AiSignature[] = [
+  {
+    label: "Cursor",
+    color: "#34D399",
+    file: "app/api/feed/route.ts",
+    pattern: `import { parseCSV } from "csv-parser-mini"`,
+    flag: "Hallucinated package · 0 npm downloads",
+  },
+  {
+    label: "v0",
+    color: "#F472B6",
+    file: "components/user-card.tsx",
+    pattern: `<Image src={user.avatar} />`,
+    flag: "Missing alt attribute · 7 instances",
+  },
+  {
+    label: "Lovable",
+    color: "#FB923C",
+    file: "app/dashboard/page.tsx",
+    pattern: `await supabase.from("users").select("*")`,
+    flag: "No RLS policy on public table",
+  },
+  {
+    label: "Claude",
+    color: "#FFB627",
+    file: "lib/auth/session.ts",
+    pattern: `try { /* … */ } catch { /* swallowed */ }`,
+    flag: "Silent catch · 4 instances",
+  },
+  {
+    label: "Bolt",
+    color: "#60A5FA",
+    file: "lib/openai.ts",
+    pattern: `const key = process.env.OPENAI_KEY`,
+    flag: "Secret reachable from client bundle",
+  },
+  {
+    label: "Windsurf",
+    color: "#22D3EE",
+    file: "app/api/llm/route.ts",
+    pattern: `model: "gpt-4", messages`,
+    flag: "Cost-leak · no max_tokens cap",
+  },
+  {
+    label: "Codex",
+    color: "#6BAED6",
+    file: "proxy.ts",
+    pattern: `if (req.cookies.get("token")) next()`,
+    flag: "Auth check without verification",
+  },
+  {
+    label: "Copilot",
+    color: "#A78BFA",
+    file: "app/products/[id]/page.tsx",
+    pattern: `const data = await fetch(url)`,
+    flag: "No revalidation strategy",
+  },
+];
+
 function AiAware() {
-  const ring1 = [
-    { label: "Cursor", color: "#34D399" },
-    { label: "Claude", color: "#FFB627" },
-    { label: "Codex", color: "#6BAED6" },
-    { label: "Copilot", color: "#A78BFA" },
-  ];
-  const ring2 = [
-    { label: "v0", color: "#F472B6" },
-    { label: "Lovable", color: "#FB923C" },
-    { label: "Bolt", color: "#60A5FA" },
-    { label: "Windsurf", color: "#34D399" },
-    { label: "Replit", color: "#FBBF24" },
-  ];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(
+      () => setIdx((i) => (i + 1) % AI_SIGNATURES.length),
+      2400,
+    );
+    return () => clearInterval(t);
+  }, []);
+
+  const active = AI_SIGNATURES[idx]!;
+  const ts = mockTimestamp(idx);
 
   return (
     <Section
@@ -984,40 +1049,131 @@ function AiAware() {
       title="Built for the way AI writes code."
       sub="EDITH detects which AI tool generated the code in your repo, then runs the rules that catch each tool's signature failure modes. Cursor hallucinates packages. v0 ships missing alt attributes. Lovable forgets RLS. EDITH knows."
     >
-      <div className="relative mx-auto h-[460px] w-full max-w-3xl">
-        {/* center */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="relative grid h-24 w-24 place-items-center rounded-2xl border border-[var(--accent)] bg-[var(--bg-elev)] shadow-[0_0_60px_-10px_var(--accent-glow)]">
-            <EdithLogo />
-            <BorderBeam size={120} duration={6} />
+      <div className="relative mx-auto w-full max-w-3xl">
+        {/* Live-detection terminal */}
+        <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/85 shadow-[0_0_60px_-30px_var(--accent-glow)]">
+          <span
+            aria-hidden
+            className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
+          />
+          {/* terminal chrome */}
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--border)]/80 bg-[var(--bg)]/40 px-5 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[var(--text-muted)]/40" />
+              <span className="h-2 w-2 rounded-full bg-[var(--text-muted)]/40" />
+              <span className="h-2 w-2 rounded-full bg-[var(--text-muted)]/40" />
+              <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                edith · live detection
+              </span>
+            </div>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]">
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]"
+                style={{ boxShadow: "0 0 8px var(--accent-glow)" }}
+              />
+              scanning
+            </span>
+          </div>
+
+          {/* live readout */}
+          <div className="px-5 py-5">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active.label}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                className="space-y-2.5 font-mono text-[12px] leading-[1.6]"
+              >
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[var(--text-muted)]">
+                  <span className="text-[var(--text-dim)]">[{ts}]</span>
+                  <span>detected:</span>
+                  <span
+                    className="font-semibold uppercase tracking-[0.12em]"
+                    style={{ color: active.color }}
+                  >
+                    {active.label}
+                  </span>
+                  <span className="text-[var(--text-dim)]">in</span>
+                  <span className="text-[var(--text)]">{active.file}</span>
+                </div>
+                <div className="rounded-md border border-[var(--border)]/70 bg-[var(--bg)]/55 px-3 py-2 text-[11.5px] text-[var(--text)]">
+                  <span className="select-none text-[var(--text-muted)]">
+                    {"> "}
+                  </span>
+                  {active.pattern}
+                </div>
+                <div className="flex items-start gap-2 text-[11.5px]">
+                  <span className="mt-[3px] inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                  <span className="text-[var(--accent)]">flag:</span>
+                  <span className="text-[var(--text)]">{active.flag}</span>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
-        <OrbitingCircles radius={150} duration={28}>
-          {ring1.map((p) => (
-            <ToolChip key={p.label} {...p} />
-          ))}
-        </OrbitingCircles>
-        <OrbitingCircles radius={210} duration={42} reverse>
-          {ring2.map((p) => (
-            <ToolChip key={p.label} {...p} />
-          ))}
-        </OrbitingCircles>
-        <Sparkles count={18} />
+
+        {/* grid of tools — active one lit */}
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {AI_SIGNATURES.map((s, i) => {
+            const isActive = i === idx;
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => setIdx(i)}
+                aria-label={`Show ${s.label} detection`}
+                aria-pressed={isActive}
+                className={`group relative flex items-center gap-2 overflow-hidden rounded-md border px-3 py-2.5 text-left transition-all duration-300 ${
+                  isActive
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-[0_0_30px_-12px_var(--accent-glow)]"
+                    : "border-[var(--border)] bg-[var(--bg-elev)]/55 hover:border-[var(--border-hot)]"
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className="h-2 w-2 shrink-0 rounded-full transition-transform duration-300"
+                  style={{
+                    background: s.color,
+                    boxShadow: isActive ? `0 0 10px ${s.color}` : "none",
+                    transform: isActive ? "scale(1.15)" : "scale(1)",
+                  }}
+                />
+                <span
+                  className={`truncate font-mono text-[10.5px] uppercase tracking-[0.15em] transition-colors ${
+                    isActive ? "text-[var(--text)]" : "text-[var(--text-dim)] group-hover:text-[var(--text)]"
+                  }`}
+                >
+                  {s.label}
+                </span>
+                {isActive && (
+                  <motion.span
+                    layoutId="aiaware-active-bar"
+                    aria-hidden
+                    className="absolute bottom-0 left-0 h-[2px] bg-[var(--accent)]"
+                    initial={false}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 2.4, ease: "linear" }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </Section>
   );
 }
 
-function ToolChip({ label, color }: { label: string; color: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.15em] text-[var(--text)] shadow-sm">
-      <span
-        className="h-1.5 w-1.5 rounded-full"
-        style={{ background: color }}
-      />
-      {label}
-    </div>
-  );
+function mockTimestamp(i: number): string {
+  // Stable, plausible-looking timestamps that step forward as we cycle.
+  const base = 12 * 3600 + 43 * 60 + 17;
+  const s = (base + i * 7) % (24 * 3600);
+  const hh = String(Math.floor(s / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
 }
 
 /* ============================================================
