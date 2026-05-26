@@ -18,6 +18,10 @@ import {
   SeoAutofixButton,
   type AutoFixableIssue,
 } from "@/components/edith/seo-autofix-button";
+import {
+  SeoTrackedSites,
+  type TrackedRepo,
+} from "@/components/edith/seo-tracked-sites";
 import { isAutoFixable } from "@/lib/seo/auto-pr";
 import type { Severity } from "@/lib/mock-data";
 
@@ -329,21 +333,61 @@ export default async function SeoDashboard() {
     );
   const citations = (citationRows as CitationRow[] | null) ?? [];
 
-  // Repos list for the panel's selector
+  // All org repos (used to populate the "Add site" dialog)
   const { data: repoRows } = await admin
     .from("repositories")
-    .select("id, name")
+    .select("id, name, owner, live_url")
     .eq("org_id", orgId)
     .order("name", { ascending: true })
     .then(
       (r) => r,
       () => ({ data: [] }),
     );
-  const reposList = (repoRows as Array<{ id: string; name: string }> | null) ?? [];
+  type RepoRow = {
+    id: string;
+    name: string;
+    owner: string;
+    live_url: string | null;
+  };
+  const allRepos = (repoRows as RepoRow[] | null) ?? [];
+  const connectableRepos = allRepos.map((r) => ({
+    id: r.id,
+    name: r.name,
+    owner: r.owner,
+  }));
+
+  // Tracked subset (live_url set) — enriched with GSC binding
+  const trackedBase = allRepos.filter((r) => r.live_url);
+  const { data: gscBindingRows } = await admin
+    .from("gsc_properties")
+    .select("repo_id, site_url")
+    .in(
+      "repo_id",
+      trackedBase.map((r) => r.id),
+    )
+    .then(
+      (r) => r,
+      () => ({ data: [] }),
+    );
+  type GBR = { repo_id: string; site_url: string };
+  const gscByRepo = new Map(
+    ((gscBindingRows as GBR[] | null) ?? []).map((g) => [g.repo_id, g.site_url]),
+  );
+  const trackedSites: TrackedRepo[] = trackedBase.map((r) => ({
+    id: r.id,
+    name: r.name,
+    owner: r.owner,
+    liveUrl: r.live_url!,
+    gscSiteUrl: gscByRepo.get(r.id) ?? null,
+  }));
+
+  // AI citations dropdown only sees SEO-tracked repos.
+  const aiReposList = trackedSites.map((t) => ({ id: t.id, name: t.name }));
 
   const { overall, subGrades } = computeScores(seoIssues);
 
   const hasData = seoIssues.length > 0 || runtime.length > 0;
+  const hasTracked = trackedSites.length > 0;
 
   return (
     <>
@@ -356,18 +400,21 @@ export default async function SeoDashboard() {
         }
       />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8">
-        {/* ── ZERO-STATE BANNER ── only when nothing scanned + no runtime */}
-        {seoIssues.length === 0 && runtime.length === 0 && (
-          <ZeroStateBanner />
-        )}
+        {/* ── TRACKED SITES MANAGER — top of every /seo view ── */}
+        <SeoTrackedSites
+          tracked={trackedSites}
+          connectable={connectableRepos}
+        />
 
         {/* ── PRIMARY: SCORE + SUB-GRADES, only when data exists ── */}
         {seoIssues.length > 0 && (
-          <ScoreHero
-            score={overall}
-            subGrades={subGrades}
-            issueCount={seoIssues.length}
-          />
+          <div className="mt-8">
+            <ScoreHero
+              score={overall}
+              subGrades={subGrades}
+              issueCount={seoIssues.length}
+            />
+          </div>
         )}
 
         {/* ── REAL-USER CORE WEB VITALS ── */}
@@ -403,48 +450,51 @@ export default async function SeoDashboard() {
             </Section>
           )}
 
-        {/* ── INTEGRATIONS: GSC + AI Citations, side-by-side on lg+ ── */}
-        <div className={hasData ? "mt-12" : "mt-8"}>
-          <div className="mb-5 flex items-baseline justify-between gap-4">
-            <div>
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
-                Integrations
+        {/* ── INTEGRATIONS — only meaningful when ≥1 SEO-tracked site ── */}
+        {hasTracked && (
+          <div className={hasData ? "mt-12" : "mt-10"}>
+            <div className="mb-5 flex items-baseline justify-between gap-4">
+              <div>
+                <div className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--accent)]">
+                  Integrations
+                </div>
+                <h2 className="mt-1 text-[16px] font-semibold tracking-[-0.01em] text-[var(--text)]">
+                  Bring in real data
+                </h2>
               </div>
-              <h2 className="mt-1 text-[16px] font-semibold tracking-[-0.01em] text-[var(--text)]">
-                Bring in real data
-              </h2>
+              <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)] sm:inline">
+                Across {trackedSites.length} tracked site
+                {trackedSites.length === 1 ? "" : "s"}
+              </span>
             </div>
-            <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)] sm:inline">
-              Google · LLMs
-            </span>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <IntegrationCard
-              eyebrow="Google Search Console"
-              meta={
-                gscConnected ? (
-                  <GscSyncButton />
-                ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <IntegrationCard
+                eyebrow="Google Search Console"
+                meta={
+                  gscConnected ? (
+                    <GscSyncButton />
+                  ) : (
+                    <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                      Not connected
+                    </span>
+                  )
+                }
+              >
+                <GscPanel connected={gscConnected} summary={gscSummary} />
+              </IntegrationCard>
+              <IntegrationCard
+                eyebrow="LLM citations"
+                meta={
                   <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                    Not connected
+                    Claude · GPT · Perplexity
                   </span>
-                )
-              }
-            >
-              <GscPanel connected={gscConnected} summary={gscSummary} />
-            </IntegrationCard>
-            <IntegrationCard
-              eyebrow="LLM citations"
-              meta={
-                <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  Claude · GPT · Perplexity
-                </span>
-              }
-            >
-              <AiCitationsPanel initial={citations} repos={reposList} />
-            </IntegrationCard>
+                }
+              >
+                <AiCitationsPanel initial={citations} repos={aiReposList} />
+              </IntegrationCard>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── ISSUES TABLE — only when issues exist ── */}
         {seoIssues.length > 0 && (
@@ -472,6 +522,7 @@ export default async function SeoDashboard() {
         )}
 
         {/* ── AI BOT SNIPPET — collapsed by default at the very bottom ── */}
+        {hasTracked && (
         <div className="mt-12">
           <details className="group rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/40">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-mono text-[10.5px] uppercase tracking-[0.22em] text-[var(--text-dim)] hover:text-[var(--text)]">
@@ -494,6 +545,7 @@ export default async function SeoDashboard() {
             </div>
           </details>
         </div>
+        )}
       </main>
     </>
   );
@@ -712,40 +764,6 @@ function RadialGauge({ value, color }: { value: number; color: string }) {
 }
 
 /** Zero-state banner — clean, single-purpose, replaces the old full-page empty state. */
-function ZeroStateBanner() {
-  return (
-    <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]/55 p-6">
-      <span
-        aria-hidden
-        className="absolute left-2 top-2 h-4 w-[2px] bg-[var(--accent)]"
-      />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]">
-            <Globe className="h-4 w-4" strokeWidth={1.75} />
-          </div>
-          <div>
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--text)]">
-              No scans yet — but you can still set up the integrations below.
-            </h2>
-            <p className="mt-1 max-w-[68ch] text-[12.5px] leading-[1.55] text-[var(--text-dim)]">
-              Run a scan to populate the EDITH SEO score, sub-grades, and the
-              issue list. Until then, connect Search Console + run an LLM
-              citation check from the cards below.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/repos"
-          className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-3.5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bg)] shadow-[0_0_20px_-8px_var(--accent-glow)] hover:brightness-110"
-        >
-          Pick a repo to scan <ArrowRight className="h-3 w-3" />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 function CwvStrip({
   latest,
 }: {
